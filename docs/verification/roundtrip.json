@@ -1,0 +1,101 @@
+{
+  "result": "PASS",
+  "method": "Browser painting → browser GLB download → browser reopen → browser export; independent loader comparison of every mesh color and world transform",
+  "meshCount": 12,
+  "coloredMeshes": [
+    {
+      "name": "Body",
+      "vertices": 4225,
+      "matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.1,
+        0,
+        1
+      ],
+      "vertexColors": true,
+      "baseColor": [
+        1,
+        1,
+        1
+      ],
+      "colorVertices": 4225,
+      "uniqueColors": 144,
+      "colorHash": "55e133df4422b5d21d8426a56e3dbad27598e1721a3dcef3490867161060aee5"
+    },
+    {
+      "name": "Face",
+      "vertices": 3185,
+      "matrix": [
+        1.05,
+        0,
+        0,
+        0,
+        0,
+        0.92,
+        0,
+        0,
+        0,
+        0,
+        0.88,
+        0,
+        0,
+        0.95,
+        0.08,
+        1
+      ],
+      "vertexColors": true,
+      "baseColor": [
+        1,
+        1,
+        1
+      ],
+      "colorVertices": 3185,
+      "uniqueColors": 272,
+      "colorHash": "23dc049cc1ef5f5baf6dff1799bbf3a43f03af91f172217af983555b2fedcf05"
+    },
+    {
+      "name": "Right_arm",
+      "vertices": 1221,
+      "matrix": [
+        0.9210609940028851,
+        0.38941834230865047,
+        0,
+        0,
+        -0.38941834230865047,
+        0.9210609940028851,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0.77,
+        0.2,
+        0,
+        1
+      ],
+      "vertexColors": true,
+      "baseColor": [
+        1,
+        1,
+        1
+      ],
+      "colorVertices": 1221,
+      "uniqueColors": 71,
+      "colorHash": "5c5ae33984155e7a407d1be55b919da60a70ca0eb56f2cb2767bd167d4d46a67"
+    }
+  ],
+  "editorObjectsExported": false
+}

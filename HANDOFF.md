@@ -1,15 +1,15 @@
 # PolyPalette session handoff
 
-Last updated: 2026-10-20. Milestones 1 and 2 are implemented. This document describes the state at handoff; recheck the working tree and running processes before changing anything.
+Last updated: 2026-10-20. Milestones 1–3 are implemented. This document describes the state at handoff; recheck the working tree and running processes before changing anything.
 
 ## Start here
 
 - Canonical project folder: `/Users/kevinluo/Documents/Projects/poly-palette`.
 - The app was moved out of `/Users/kevinluo/Documents/Snorkel-AI/terminus/polypalette`. The old directory no longer exists. This project is independent of the earlier benchmark work in that repository.
 - Existing Codex project: **PolyPalette**, pointing to the canonical folder above. Use this project for new chats.
-- Read this file, `README.md`, `docs/architecture.md`, and `docs/milestone-2.md` before continuing.
-- A Vite dev server was restarted from the new folder at `http://127.0.0.1:5173/`. Check whether it is still running before starting another; do not rely on a previous chat's process or browser handles.
-- Git uses branch `main`; `origin` is `https://github.com/LuoKevin/poly-palette.git`. The user authorized the initial commit and push on 2026-10-20. The remote was checked and contained no refs before publication. Check `git log -1` and `git status --short --branch` for the current commit and upstream state. Preserve all local work; do not clean/reset this working directory.
+- Read this file, `README.md`, `docs/architecture.md`, `docs/milestone-2.md`, and `docs/milestone-3.md` before continuing.
+- Milestone 3 was verified with a fresh Vite server at `http://127.0.0.1:5174/`; an older server occupied 5173. Check running processes before starting another; do not rely on previous browser/process handles.
+- Git uses branch `main`; `origin` is `https://github.com/LuoKevin/poly-palette.git`. Initial commit `e5957a3` was pushed to `origin/main` on 2026-10-20. The user subsequently authorized committing and pushing milestone 3 on the same date. Check `git log -1` and `git status --short --branch` for the current commit and upstream state. Preserve all local work; do not clean/reset this working directory.
 
 ## User intent and working style
 
@@ -17,7 +17,7 @@ Build an approachable, MS Paint-like tool for painting 3D models. The user is a 
 
 Use React, TypeScript, Vite, and Three.js. React Three Fiber and Drei are already adopted. Keep the initial app entirely in the browser, with local model files, no accounts, and no backend. Prioritize working interactions and understandable controls over secondary features. Keep the app runnable at each milestone and provide relevant files, commands, a concise graphics explanation, and a manual verification checklist. Make routine implementation decisions without a long questionnaire.
 
-The continuation chat read the project documentation and summarized readiness. The latest request is to make the initial commit and push it to the configured GitHub repository. **Milestone 3 has not yet been explicitly requested for implementation.** Let the user direct the next implementation work.
+The user requested milestone 3 after the initial commit/push. Selection/fill, undo/redo, and editable project save/reopen are now implemented and verified. The latest request is to commit these changes and push them to GitHub. Further milestones remain unrequested.
 
 ## Implemented
 
@@ -40,8 +40,18 @@ The continuation chat read the project documentation and summarized readiness. T
 - Preparation clones shared geometry/materials and bakes material tint into vertex colors; cloned base materials become white. Multi-material geometry is separated where needed to preserve distinct group tints.
 - Base-color textures are preserved until the user explicitly enables replacement and paints that mesh. Other meshes keep their textures.
 - Binary GLB download retains vertex colors, materials, and original transforms, excluding the editor wrapper, camera, lights, and grid. Reopened GLBs remain paintable.
-- Model replacement asks for confirmation if the app has unsaved painting. Export clears that dirty indicator.
+- Model replacement asks for confirmation when the workspace has unsaved changes. Milestone 3 now clears that indicator on project save; GLB export keeps it because it excludes editor settings.
 - Robot body/arms were given more vertices to support useful brush detail. Current sample: 12 meshes, 24,480 triangles, 13,147 vertices.
+
+### Milestone 3: edit and save
+
+- Select mode (**S**) raycasts the clicked mesh and shows a purple bounding box; a mesh list also selects hidden/small meshes. Fill (**F**) blends current color/opacity over the entire selected mesh, including hidden vertices.
+- `EditHistory` records one command per stroke/fill. Undo/redo restores color deltas and first-edit geometry/material preparation, including texture removal. New edits invalidate redo. Estimated 64 MiB / 100-command budget; oldest commands evicted first. Oversized individual edits clear history and explain that they cannot be undone.
+- History resource holders retain both preparation states; discarding history releases only resources no longer shared by the model or other retained states. A missed/no-op brush does not prepare a mesh or remove a texture. Explicit texture replacement still counts when RGB already matches.
+- `.polypalette` version 1 is native scene JSON with explicit BufferGeometry, embedded images, stable mesh IDs, model name, brush/selection/camera/navigation/display settings. No session undo history; opening starts a fresh history. Maximum 100 MiB; existing 2-million-triangle guard also applies. Version/settings/selection/external images validated before accepting a replacement.
+- Save project (**⌘/Ctrl S**) stores the complete workspace and clears its dirty indicator. GLB export remains separate. Replacement and browser unload protect unsaved changes; malformed projects preserve current model/history. There is no autosave/recovery.
+- Camera position and orbit target restore from projects; resizing preserves the view, Reset fits it. Orbit damping is disabled for deterministic camera capture. Wireframe display overrides never enter saved materials.
+- Runtime requirement corrected to Node 22.12+ in package metadata and README; no dependency versions changed.
 
 ## Code map
 
@@ -51,7 +61,11 @@ The continuation chat read the project documentation and summarized readiness. T
 | `src/components/Viewport.tsx` | R3F scene, camera fitting, presentation wrapper, navigation and display settings |
 | `src/components/PaintInteraction.tsx` | Pointer events/capture, brush cursor, stroke lifecycle and cleanup |
 | `src/paint/brush.ts` | PaintStroke, screen-space coverage, BVH raycasting, visibility and blending |
-| `src/paint/prepareMesh.ts` | Clone shared resources, initialize color attributes, material/texture policy |
+| `src/paint/prepareMesh.ts` | Clone shared resources, initialize colors, retain before/after preparation states |
+| `src/paint/history.ts` | Bounded undo/redo, color deltas, shared-resource release |
+| `src/paint/fill.ts` | Whole-mesh fill and mesh enumeration |
+| `src/project/project.ts` | Versioned project serialization, validation, import and download |
+| `src/model/display.ts` | Keep temporary wireframe overrides out of model state |
 | `src/hooks/useModel.ts` | Current asset, loading/error state, race-safe replacement, disposal |
 | `src/model/importGlb.ts` | GLB validation, resource boundary and GLTFLoader |
 | `src/model/exportGlb.ts` | GLTFExporter and local browser download |
@@ -60,11 +74,20 @@ The continuation chat read the project documentation and summarized readiness. T
 | `src/model/types.ts` | Shared asset types |
 | `src/styles.css` | Responsive creative-tool layout |
 
-`ModelAsset.root` is the rendered/exportable original hierarchy. `ModelAsset.resources` also holds retained resources from mesh preparation; those extra resource holders must never be added to the rendered/exported hierarchy. Shared textures/materials/geometries must be disposed once, not once per mesh.
+`ModelAsset.root` is the rendered/exportable original hierarchy. `ModelAsset.resources` also holds before/after history resources from mesh preparation; those extra resource holders must never be added to the rendered/exported hierarchy. Shared textures/materials/geometries must be disposed once, not once per mesh.
 
 Do not bake the viewport's centering/scale into the model. Do not mutate React state per vertex. Do not multiply painted colors by the original base tint again. Keep geometry colors in Three.js's linear working space. The native color picker handles both input and change events so colors update live.
 
-## Verification already performed
+## Milestone 3 verification (2026-10-20)
+
+- `npm test`: **36 tests in 6 files passed** using Node 22.22.0. The GLB round-trip test now includes fill undo/redo before exporting. New history/project suites cover first-edit restoration, sharing/disposal, budgets, branching, no-ops, textures, groups, settings, stable IDs and invalid files.
+- `npm run build`: TypeScript and production build passed. Large graphics chunk warning remains (~369 kB gzip), as do the dependency CommonJS warning and browser Three.Clock deprecation warning. No browser console errors were observed.
+- Actual browser interactions: viewport/list selection, body/arm fills, strokes, undo/redo, redo invalidation, project download/reload/reopen, resumed painting, invalid-version recovery with history preserved, explicit texture replacement and texture restoration on Undo, GLB download/reopening after history operations.
+- Comparing two browser project downloads matched all **12 mesh IDs, names, local matrices, geometry arrays, and editor settings exactly**, including changed camera angle, brush size/opacity, selection, background and grid.
+- The browser GLB exported after history operations matched all **8,631 RGB vertices** on Body, Face and Right arm against the saved project.
+- Evidence: `docs/verification/milestone-3-roundtrip.json` and `docs/milestone-3.png`; walkthrough and manual checklist: `docs/milestone-3.md`. Downloaded test projects/GLBs remain in the local Downloads folder; they are not application dependencies.
+
+## Historical milestone 2 verification
 
 Automated checks were rerun on 2026-10-20 from the canonical folder before the initial commit: all 26 tests and the production build passed using Node 22.22.0. `npm ci` restored missing macOS native dependencies without changing the lockfile. The default Node 20 installation produced dependency engine warnings, so use Node 22.12+ for this toolchain. Browser verification below predates the folder move and was not repeated for this publication-only request; application logic is unchanged. These results do not establish that a future working tree has been tested.
 
@@ -87,7 +110,7 @@ The browser comparison was a one-off authoring check; there is no general-purpos
 
 ## Run/check commands
 
-Use Node 22.12+, with the lockfile. Some dependencies no longer support the Node 20 range still listed in the package metadata and README.
+Use Node 22.12+, with the lockfile. The default shell used Node 20 during this session, so checks explicitly selected the installed Node 22.22.0 binary.
 
 ```sh
 cd /Users/kevinluo/Documents/Projects/poly-palette
@@ -107,24 +130,18 @@ Production preview defaults to `http://127.0.0.1:4173/`. `node_modules/`, `dist/
 
 ## Current limits and unresolved work
 
-- No mesh fill, explicit selection UI, undo/redo, project save/reopen, automatic saving, or recovery yet. Export GLB before closing. Reloading starts with the sample.
+- No automatic saving or crash recovery. Save a project before closing; reloading starts with the sample. Session history is not included in project files. Project JSON is larger than GLB and serialization/validation run on the main thread.
 - GLB import only: up to 50 MiB and 2 million triangles, uncompressed and self-contained. Those guards are not a performance guarantee.
 - OBJ, STL, multi-file glTF, Draco/Meshopt/KTX2, skinned/instanced/morph-target editing, and animation playback are not implemented.
 - Paint supports opaque static meshes; transparent/alpha-cutout meshes remain view/export-only. Alpha-texture-aware visibility is not implemented.
 - Textured painting replaces the touched mesh's base-color texture only after explicit opt-in. It does not preserve/bake image details underneath vertex paint.
 - Vertex colors do not require UVs. Fine marks require dense geometry; interpolation can extend visible color beyond the cursor within large triangles. There is no automatic subdivision/unwrap.
 - BVH construction, projection and vertex scanning run on the main thread. Large-file interaction latency is not comprehensively benchmarked; workers/spatial indexing and code splitting remain potential improvements.
-- Original resources are retained internally for future restoration, but there is no restore UI/history yet.
-- Initial publication of milestones 1 and 2 is authorized. Check Git for the latest commit and push status; further milestone implementation still requires a user request.
+- The history budget estimates retained buffer/texture data, not all JavaScript/BVH/GPU allocations. Large meshes and texture-heavy project loads have not been comprehensively benchmarked.
+- Publication of milestone 3 is authorized. Consult Git for the latest commit and upstream state; further milestone implementation remains unrequested.
 
-## Proposed milestone 3 (not started)
+## Potential next milestone (not started)
 
-1. Add explicit mesh selection and fill without changing other meshes.
-2. Refactor PaintStroke's internal before-color/coverage data into a completed command with before/after deltas. Current `finish()` returns only a changed-vertex count and mesh name, which is insufficient for undo.
-3. Record one command per stroke/fill, with a memory budget. Clear redo on a new edit; avoid accidental history entries for every pointer event. Account for geometry/material preparation, including texture replacement, when designing undo.
-4. Add a versioned local project format containing the model/paint state, stable mesh IDs, and camera/brush settings. GLB export already preserves paint but does not save editor state. The project container format has not been selected; persistent undo history can be deferred.
-5. Verify fill isolation, stroke-level undo/redo, redo invalidation, save → reload → reopen → continue painting, invalid project recovery, and GLB export after history operations. Keep the existing browser-only and local-resource guarantees.
-
-After this, add STL, OBJ and local glTF bundles incrementally. Texture painting/UV atlas generation is a later detail-oriented path, not a requirement for the current vertex workflow.
+Add STL first, then OBJ and local glTF bundles incrementally, maintaining local resource resolution and GLB export. A separate recovery milestone could use IndexedDB for unsaved-work recovery. Detail painting/subdivision/UV work remains later scope. Let the user choose; the roadmap does not authorize implementation by itself.
 
 Update this handoff after meaningful changes so future chats can distinguish implemented behavior, tested evidence, and proposed work.

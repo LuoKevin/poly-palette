@@ -118,7 +118,7 @@ describe('preparing editable geometry', () => {
     prepareMesh(asset, mesh, true);
     expect((mesh.material as MeshStandardMaterial).map).toBeNull();
     expect(original.map).not.toBeNull();
-    expect(asset.resources).toHaveLength(2);
+    expect(asset.resources).toHaveLength(3);
     original.transparent = true;
     const transparent = new Mesh(new PlaneGeometry(), original);
     expect(paintBlocker(transparent, true)).toContain('opaque');

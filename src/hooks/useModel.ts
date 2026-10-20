@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createSample } from '../model/sample';
+import { importProject } from '../project/project';
 import { importGlb } from '../model/importGlb';
 import { disposeObjects } from '../model/model';
 
@@ -17,7 +18,7 @@ export function useModel() {
     setLoading(file.name);
     setError(null);
     try {
-      const next = await importGlb(file);
+      const next = await (file.name.toLowerCase().endsWith('.polypalette') ? importProject(file) : importGlb(file));
       if (ticket !== request.current) { disposeObjects(next.resources); return; }
       setModel(next);
     } catch (problem) {

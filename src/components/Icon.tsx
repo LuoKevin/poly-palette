@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 
 const paths = {
+  select: <path d="m5 3 14 9-7 1-3 7Z"/>,
+  fill: <><path d="m5 9 7-7 9 9-8 8-9-9Z"/><path d="M3 21h18M7 7l10 10"/></>,
   cube: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></>,
   upload: <><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></>,
   download: <><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/></>,

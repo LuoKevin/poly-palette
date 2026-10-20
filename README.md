@@ -2,7 +2,7 @@
 
 A small, entirely browser-based 3D painting workspace built incrementally with React, TypeScript, Vite, Three.js, React Three Fiber, and Drei.
 
-**Current milestone: vertex painting and GLB export.** Paint the visible surface, download the result, and reopen the GLB to continue editing. Fill, undo/redo, and editable project files are the next milestone. There is no automatic saving; reloading the page returns to the sample model.
+**Current milestone: select, edit, and save.** Select and fill individual meshes, paint with stroke-level undo/redo, and download editable `.polypalette` projects. Projects restore the model, brush, selection, camera, and display settings. GLB export remains available for sharing models. There is no automatic saving; save a project before closing.
 
 ## Continuing in a new chat
 
@@ -10,7 +10,7 @@ Start with [HANDOFF.md](HANDOFF.md) for the current state, verification evidence
 
 ## Run locally
 
-Use Node.js 22.12+ (or Node 20.19+). From a terminal:
+Use Node.js 22.12+. From a terminal:
 
 ```sh
 cd /Users/kevinluo/Documents/Projects/poly-palette
@@ -31,7 +31,10 @@ The preview command serves the production build at **http://127.0.0.1:4173**. De
 ## What works
 
 - A built-in, original multi-mesh robot sample with enough vertices for broad brush strokes.
-- Separate Navigate and Paint modes; painting disables camera gestures.
+- Separate Select, Navigate, and Paint modes; editing disables camera gestures.
+- Mesh selection by viewport click or list, with whole-mesh fill at the chosen color/opacity.
+- One undo/redo command per stroke/fill, including geometry/material and texture restoration.
+- Versioned local project save/reopen; invalid files preserve the current workspace.
 - A live color picker, eight swatches, screen-pixel brush size, opacity, and a brush cursor.
 - Soft vertex-color strokes on the visible portion of the first mesh touched, with occlusion checks.
 - GLB export retaining vertex colors and original transforms; exported models remain paintable.
@@ -48,11 +51,17 @@ This version opens one self-contained, uncompressed GLB at a time: at most 50 Mi
 
 | Action | Control |
 | --- | --- |
+| Select a mesh | **S**, then click the mesh, or use the Selected mesh list |
+| Fill selected mesh | **F**, with current color and opacity |
+| Undo / redo | **⌘/Ctrl Z** / **⌘/Ctrl Shift Z** (also **Ctrl Y**) |
+| Save project | **⌘/Ctrl S**, or Save project |
 | Orbit | Left-drag in Orbit mode; **V** selects Orbit |
 | Pan | Right-drag, or left-drag in Pan mode; **H** selects Pan |
 | Zoom | Mouse wheel, trackpad pinch, or toolbar +/− |
 | Reset and fit | **R** or either Reset view button |
 | Touch | One finger to orbit; two fingers to zoom/pan |
+
+Project files are UTF-8 JSON with embedded geometry/textures, capped at 100 MiB. Open project or drop a `.polypalette` file to restore it. History starts fresh on reopening and retains up to 100 commands within an estimated 64 MiB budget. Save project clears the unsaved indicator; Export GLB saves only the model.
 
 **B** selects Paint. Paint mode disables orbit/pan/scroll gestures; the toolbar zoom and reset buttons still work. A stroke stays on its first mesh. Opacity blends once per stroke; another stroke can build more color.
 
@@ -68,7 +77,7 @@ Paint currently supports opaque static meshes. Textured meshes require the expli
 6. Try a corrupted `.glb` or a different format. Expect a useful error while the previously loaded model remains usable.
 7. Choose **Load the sample**. Resize the window; the viewport and settings should remain usable.
 
-For painting and export, follow the [milestone 2 verification checklist](docs/milestone-2.md). Automated tests cover import validation, bounds, disposal, preparation, opacity, occlusion, transformed/UV-less meshes, and the actual Three.js exporter/loader round trip. Actual WebGL drawing, brush controls, downloads, and reopening are also checked in the browser.
+For selection, history and saving, follow the [milestone 3 verification checklist](docs/milestone-3.md). The [milestone 2 checklist](docs/milestone-2.md) also covers brush/export behavior. Automated tests cover import validation, bounds, disposal, preparation, opacity, occlusion, transformed/UV-less meshes, and the actual Three.js exporter/loader round trip. Actual WebGL drawing, brush controls, downloads, and reopening are also checked in the browser.
 
 ## Where to work next
 
@@ -85,7 +94,11 @@ For painting and export, follow the [milestone 2 verification checklist](docs/mi
 | `src/paint/prepareMesh.ts` | Isolate shared resources and initialize colors |
 | `src/components/PaintInteraction.tsx` | Pointer capture, mode lifecycle, cursor |
 | `src/model/exportGlb.ts` | Download a GLB without editor objects |
+| `src/paint/history.ts` | Bounded command history and shared-resource release |
+| `src/paint/fill.ts` | Whole-mesh fill and mesh enumeration |
+| `src/project/project.ts` | Versioned local projects, validation and download |
+| `src/model/display.ts` | Keep wireframe display overrides out of saved materials |
 | `src/styles.css` | Responsive editor styling |
 | `docs/architecture.md` | Painting tradeoffs, graphics concepts, milestone plan |
 
-Read [how milestone 2 works](docs/milestone-2.md) for the graphics concepts and verification results. The [architecture and milestone plan](docs/architecture.md) describes subsequent work.
+Read [milestone 3](docs/milestone-3.md) for project/history design and verification, and [how milestone 2 works](docs/milestone-2.md) for the graphics concepts and verification results. The [architecture and milestone plan](docs/architecture.md) describes subsequent work.

@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-20",
+  "kind": "Actual browser project downloads before and after reload/reopen",
+  "sha256": [
+    "8c657438c2f51d589f5b57b2248cd8a220b2ce3388f9d1f4ce64c1a6e082fcdc",
+    "7f990459c5e7dcb2debbce7ea06c29440f39acebd3c057db9d75142eee16f62f"
+  ],
+  "meshes": 12,
+  "allMeshIdsNamesTransformsGeometryExact": true,
+  "editorStateExact": true,
+  "paintedVertices": 5446,
+  "editor": {
+    "brush": {
+      "color": "#f0ce58",
+      "size": 116,
+      "opacity": 0.5,
+      "replaceTextures": false
+    },
+    "mode": "navigate",
+    "navigation": "orbit",
+    "background": "#e9e3ef",
+    "grid": false,
+    "wireframe": false,
+    "selectedId": "f2efd59a-80fd-4890-85fc-8b8ca8eb6058",
+    "camera": {
+      "position": [
+        -1.656821561325046,
+        4.427721929555689,
+        6.727771202524747
+      ],
+      "target": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "glbAfterHistory": {
+    "meshes": 12,
+    "coloredVertices": 8631,
+    "allColorComponentsExact": true
+  }
+}

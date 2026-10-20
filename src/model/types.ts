@@ -1,3 +1,4 @@
+import type { EditorState } from '../project/project';
 import type { Box3, Group, Object3D, Vector3 } from 'three';
 
 export interface ModelStats {
@@ -10,7 +11,8 @@ export interface ModelStats {
 export interface ModelAsset {
   id: string;
   name: string;
-  source: 'sample' | 'file';
+  source: 'sample' | 'file' | 'project';
+  editor?: EditorState;
   root: Group;
   resources: Object3D[];
   stats: ModelStats;

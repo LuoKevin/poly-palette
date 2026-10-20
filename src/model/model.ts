@@ -32,6 +32,14 @@ export function inspectModel(root: Group) {
 }
 
 export function makeAsset(root: Group, name: string, source: ModelAsset['source'], resources: Object3D[] = [root], bytes?: number): ModelAsset {
+  const ids = new Set<string>();
+  root.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    let id = object.userData.polyPaletteId;
+    if (typeof id !== 'string' || !id || ids.has(id)) id = crypto.randomUUID();
+    object.userData.polyPaletteId = id;
+    ids.add(id);
+  });
   return { id: crypto.randomUUID(), name, source, root, resources, bytes, ...inspectModel(root) };
 }
 

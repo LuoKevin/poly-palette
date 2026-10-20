@@ -4,6 +4,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { exportGlb } from './exportGlb';
 import { makeAsset } from './model';
 import { PaintStroke } from '../paint/brush';
+import { EditHistory } from '../paint/history';
+import { fillMesh } from '../paint/fill';
 import { validateGlb } from './importGlb';
 
 // Only FileReader is browser-specific here. Exercise the real exporter/loader,
@@ -40,6 +42,11 @@ describe('paint → binary GLB → reopened model', () => {
     stroke.move({ x: 300, y: 250 });
     expect(stroke.finish().vertices).toBeGreaterThan(20);
     const before = Array.from(mesh.geometry.getAttribute('color').array);
+    const history = new EditHistory();
+    history.push(stroke.finish().command!);
+    history.push(fillMesh(asset, mesh, { color: '#00ff00', size: 120, opacity: 1, replaceTextures: false }).command!);
+    history.undo(); history.redo(); history.undo();
+    expect(Array.from(mesh.geometry.getAttribute('color').array)).toEqual(before);
     expect(new Set(before).size).toBeGreaterThan(6);
     const buffer = await exportGlb(asset);
     validateGlb(buffer);

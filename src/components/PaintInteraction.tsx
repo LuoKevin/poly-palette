@@ -11,9 +11,10 @@ interface Props {
   cursor: RefObject<HTMLDivElement | null>;
   onStroke: (result: StrokeResult) => void;
   onMessage: (message: string) => void;
+  finishStroke: RefObject<(() => void) | null>;
 }
 
-export function PaintInteraction({ model, brush, cursor, onStroke, onMessage }: Props) {
+export function PaintInteraction({ model, brush, cursor, onStroke, onMessage, finishStroke }: Props) {
   const { gl, camera, invalidate } = useThree();
   const callbacks = useRef({ onStroke, onMessage });
   callbacks.current = { onStroke, onMessage };
@@ -37,8 +38,9 @@ export function PaintInteraction({ model, brush, cursor, onStroke, onMessage }: 
       return p;
     };
     const finish = () => {
-      if (stroke) callbacks.current.onStroke(stroke.finish());
+      const completed = stroke;
       stroke = null;
+      if (completed) { callbacks.current.onStroke(completed.finish()); invalidate(); }
       const previous = pointer;
       pointer = null;
       if (previous !== null && canvas.hasPointerCapture(previous)) canvas.releasePointerCapture(previous);
@@ -70,6 +72,7 @@ export function PaintInteraction({ model, brush, cursor, onStroke, onMessage }: 
     const up = (event: PointerEvent) => { if (event.pointerId === pointer) finish(); };
     const leave = () => { if (cursor.current) cursor.current.style.display = 'none'; };
     const wheel = () => { finish(); };
+    finishStroke.current = finish;
     canvas.addEventListener('pointerdown', down, true);
     canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerup', up);
@@ -80,6 +83,7 @@ export function PaintInteraction({ model, brush, cursor, onStroke, onMessage }: 
     window.addEventListener('blur', finish);
     return () => {
       finish();
+      if (finishStroke.current === finish) finishStroke.current = null;
       leave();
       canvas.removeEventListener('pointerdown', down, true);
       canvas.removeEventListener('pointermove', move);
@@ -90,6 +94,6 @@ export function PaintInteraction({ model, brush, cursor, onStroke, onMessage }: 
       canvas.removeEventListener('wheel', wheel);
       window.removeEventListener('blur', finish);
     };
-  }, [model, brush, gl, camera, cursor, invalidate]);
+  }, [model, brush, gl, camera, cursor, invalidate, finishStroke]);
   return null;
 }

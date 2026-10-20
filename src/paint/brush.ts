@@ -2,11 +2,14 @@ import { Color, DoubleSide, Matrix3, Mesh, Raycaster, Vector2, Vector3 } from 't
 import type { Camera, Intersection } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import type { ModelAsset } from '../model/types';
+import { colorCommand, releasePreparation } from './history';
+import type { EditCommand } from './history';
+import type { Preparation } from './prepareMesh';
 import { paintBlocker, prepareMesh } from './prepareMesh';
 
 export interface BrushSettings { color: string; size: number; opacity: number; replaceTextures: boolean }
 export interface Point { x: number; y: number }
-export interface StrokeResult { vertices: number; mesh: string }
+export interface StrokeResult { vertices: number; mesh: string; meshId: string; command?: EditCommand }
 
 export function segmentDistance(point: Point, start: Point, end: Point) {
   const dx = end.x - start.x, dy = end.y - start.y;
@@ -34,9 +37,11 @@ export class PaintStroke {
   private readonly changed = new Map<number, { r: number; g: number; b: number; coverage: number }>();
   private readonly normalMatrix = new Matrix3();
   private last: Point;
+  private preparation?: Preparation;
+  private result?: StrokeResult;
   readonly mesh: Mesh;
 
-  constructor(asset: ModelAsset, private camera: Camera, private width: number, private height: number, private brush: BrushSettings, start: Point) {
+  constructor(private asset: ModelAsset, private camera: Camera, private width: number, private height: number, private brush: BrushSettings, start: Point) {
     asset.root.updateWorldMatrix(true, true);
     camera.updateWorldMatrix(true, false);
     camera.getWorldPosition(this.cameraPosition);
@@ -52,7 +57,7 @@ export class PaintStroke {
     this.mesh = hit.object as Mesh;
     const blocker = paintBlocker(this.mesh, brush.replaceTextures);
     if (blocker) throw new Error(blocker);
-    prepareMesh(asset, this.mesh, brush.replaceTextures);
+    this.preparation = prepareMesh(asset, this.mesh, brush.replaceTextures);
     accelerate(this.mesh);
     this.tint = new Color(brush.color); // CSS/sRGB → linear working-space RGB.
     this.last = start;
@@ -123,5 +128,25 @@ export class PaintStroke {
     return updates;
   }
 
-  finish(): StrokeResult { return { vertices: this.changed.size, mesh: this.mesh.name || 'mesh' }; }
+  finish(): StrokeResult {
+    if (this.result) return this.result;
+    const colors = this.mesh.geometry.getAttribute('color');
+    const entries = [...this.changed].filter(([i, old]) => colors.getX(i) !== old.r || colors.getY(i) !== old.g || colors.getZ(i) !== old.b);
+    const indices = Uint32Array.from(entries.map(([i]) => i));
+    const before = Float32Array.from(entries.flatMap(([, old]) => [old.r, old.g, old.b]));
+    const after = Float32Array.from(entries.flatMap(([i]) => [colors.getX(i), colors.getY(i), colors.getZ(i)]));
+    const originalMaterials = this.preparation ? (Array.isArray(this.preparation.before.material) ? this.preparation.before.material : [this.preparation.before.material]) : [];
+    const textureChanged = this.changed.size > 0 && originalMaterials.some((material) => 'map' in material && !!material.map);
+    // A missed brush must not silently remove a texture or prepare a mesh.
+    if (!entries.length && !textureChanged && this.preparation) {
+      this.asset.stats.vertices += this.preparation.before.geometry.getAttribute('position').count - this.mesh.geometry.getAttribute('position').count;
+      this.mesh.geometry = this.preparation.before.geometry;
+      this.mesh.material = this.preparation.before.material;
+      releasePreparation(this.asset, this.preparation);
+    }
+    const name = this.mesh.name || 'mesh';
+    this.result = { vertices: entries.length, mesh: name, meshId: this.mesh.userData.polyPaletteId,
+      command: entries.length || textureChanged ? colorCommand(this.asset, this.mesh, `Paint ${name}`, indices, before, after, this.preparation) : undefined };
+    return this.result;
+  }
 }

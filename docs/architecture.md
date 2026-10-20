@@ -14,7 +14,7 @@ File picker / drop → validate GLB → Three.js loader → ModelAsset
 React settings → Viewport → camera + lights + model → WebGL canvas
 ```
 
-Milestone 2 adds a raycast → brush → color-buffer update path and a GLB download path. Both are implemented. All imported bytes and edited state stay in browser memory. Project downloads will provide persistence; a later optional IndexedDB recovery feature can protect unsaved work.
+Milestone 2 adds a raycast → brush → color-buffer update path and a GLB download path. Both are implemented. All imported bytes and edited state stay in browser memory. Project downloads now provide persistence; a later optional IndexedDB recovery feature can protect unsaved work.
 
 ## Graphics concepts used in milestone 1
 
@@ -54,7 +54,7 @@ Texture painting is the later detail-oriented path. A raycast gives both a 3D hi
 6. Add a color picker, preset swatches, brush diameter, opacity, and a visible cursor. First verify strokes on the sample and an untextured imported mesh.
 7. Export only the edited asset with Three.js's [GLTFExporter](https://threejs.org/docs/pages/GLTFExporter.html), using binary output, and reopen it to verify colors and transforms survive.
 
-Material handling needs an explicit choice: vertex colors multiply the material base color and any base-color texture. Painting red over a blue texture does not simply replace it with red. For the first painting milestone, prepare an editable copy with a white base material and vertex colors initialized from an existing uniform tint/color attribute. Textured meshes remain viewable; painting them will require an explicit “replace base appearance” preparation step. Preserving arbitrary texture detail beneath vertex paint needs a later bake/compositing strategy. Original resources are retained internally; a user-facing restore/undo operation is still part of milestone 3.
+Material handling needs an explicit choice: vertex colors multiply the material base color and any base-color texture. Painting red over a blue texture does not simply replace it with red. For the first painting milestone, prepare an editable copy with a white base material and vertex colors initialized from an existing uniform tint/color attribute. Textured meshes remain viewable; painting them will require an explicit “replace base appearance” preparation step. Preserving arbitrary texture detail beneath vertex paint needs a later bake/compositing strategy. Original resources are retained internally; milestone 3 includes restoration through undo.
 
 Export uses GLB even when a model was imported from STL or OBJ. Standard STL has no portable color/material representation, and colored OBJ conventions are inconsistent. GLB preserves color data, though lighting and color management in another viewer can affect its appearance. Model export is distinct from an editable project: it does not retain brush settings, camera state, or undo history.
 
@@ -70,9 +70,9 @@ Implemented `src/paint/brush.ts`, `src/paint/prepareMesh.ts`, the `PaintInteract
 
 Acceptance: paint several colors at different sizes/opacities; strokes stop when switching modes; navigation never paints; rotating reveals no accidental strokes through the back; export a GLB, reload it, and verify the same colors and original model transforms. Retain the same dev/test/build commands, with focused tests for blending and coordinate transforms. No milestone is complete merely because the controls appear in the UI.
 
-### 3. Edit and save
+### 3. Edit and save — implemented
 
-Select a mesh and fill it. Store one undo command per stroke/fill, with before/after color deltas and a memory budget. Clear redo after a new edit. Save a versioned `.polypalette` project containing the model, current color/material state, stable mesh IDs, and camera/brush settings; reopening restores the editable state. Session undo history need not be embedded in the first project format. Validate the project version and resource references on load.
+Select a mesh and fill it. Store one undo command per stroke/fill, with before/after color deltas and an estimated 64 MiB / 100-command budget. Clear redo after a new edit. Save a versioned `.polypalette` project containing the model, current color/material state, stable mesh IDs, and camera/brush settings; reopening restores the editable state. Session undo history need not be embedded in the first project format. Validate the project version and resource references on load. Version 1 uses native Three.js scene JSON with explicit buffer geometry and embedded images, capped at 100 MiB. See [milestone 3](milestone-3.md) for implemented behavior and evidence.
 
 Acceptance: undo/redo multiple strokes and fills in order; filling one mesh leaves other meshes alone; save, reload the page, reopen the project, and continue painting; handle invalid project files without losing the current work.
 

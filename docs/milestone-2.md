@@ -1,6 +1,8 @@
 # Milestone 2: paint, export, reopen
 
-The browser application now paints vertex colors on opaque static meshes and exports a self-contained GLB. There is no backend. Fill, undo/redo, texture painting, and project files remain later work.
+This document records milestone 2. Selection, fill, undo/redo, and project files have since been implemented in [milestone 3](milestone-3.md). The verification below remains historical evidence for milestone 2.
+
+At this milestone, the browser application paints vertex colors on opaque static meshes and exports a self-contained GLB. There is no backend. Fill, undo/redo, texture painting, and project files remain later work.
 
 ## Run
 

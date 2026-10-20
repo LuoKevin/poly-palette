@@ -1,9 +1,16 @@
 import { Color, DynamicDrawUsage, Float32BufferAttribute, Group, Mesh } from 'three';
-import type { Material, Texture } from 'three';
+import type { BufferGeometry, Material, Object3D, Texture } from 'three';
 import type { ModelAsset } from '../model/types';
 
+import { originalWireframe } from '../model/display';
+
 type PaintMaterial = Material & { color?: Color; map?: Texture | null; vertexColors?: boolean };
-const prepared = new WeakSet<Mesh>();
+const prepared = new WeakSet<BufferGeometry>();
+export interface Preparation {
+  before: { geometry: BufferGeometry; material: Mesh['material'] };
+  after: { geometry: BufferGeometry; material: Mesh['material'] };
+  holders: Object3D[];
+}
 
 export function paintBlocker(mesh: Mesh, replaceTextures: boolean): string | null {
   for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
@@ -17,7 +24,7 @@ export function paintBlocker(mesh: Mesh, replaceTextures: boolean): string | nul
 
 /** Prepare only the touched mesh. Never mutate another mesh's shared resources. */
 export function prepareMesh(asset: ModelAsset, mesh: Mesh, replaceTextures: boolean) {
-  if (prepared.has(mesh)) return;
+  if (prepared.has(mesh.geometry)) return;
   const blocker = paintBlocker(mesh, replaceTextures);
   if (blocker) throw new Error(blocker);
   const originalGeometry = mesh.geometry;
@@ -52,6 +59,7 @@ export function prepareMesh(asset: ModelAsset, mesh: Mesh, replaceTextures: bool
     const material = original.clone() as PaintMaterial;
     material.color!.setRGB(1, 1, 1);
     material.vertexColors = true;
+    if ('wireframe' in material) material.wireframe = originalWireframe(original);
     if (material.map) material.map = null;
     material.needsUpdate = true;
     return material;
@@ -64,5 +72,9 @@ export function prepareMesh(asset: ModelAsset, mesh: Mesh, replaceTextures: bool
   mesh.geometry = geometry;
   asset.stats.vertices += count - originalGeometry.getAttribute('position').count;
   mesh.material = Array.isArray(originalMaterial) ? paintedMaterials : paintedMaterials[0];
-  prepared.add(mesh);
+  prepared.add(geometry);
+  const painted = new Group();
+  painted.add(new Mesh(geometry, mesh.material));
+  asset.resources.push(painted);
+  return { before: { geometry: originalGeometry, material: originalMaterial }, after: { geometry, material: mesh.material }, holders: [retained, painted] } satisfies Preparation;
 }
